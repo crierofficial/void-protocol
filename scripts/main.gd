@@ -47,7 +47,7 @@ func create_room(room_name: String, grid_pos: Vector2) -> Node:
 	for x in range(4):
 		for y in range(4):
 			var tile = Sprite2D.new()
-			tile.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/floor_001.png")
+			tile.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/tile_0000.png")
 			tile.position = Vector2(x * 64, y * 64)
 			tile.modulate = get_room_color(room_name)
 			room.add_child(tile)
@@ -74,7 +74,7 @@ func create_walls(room: Node) -> void:
 		wall.position = wall_pos
 		
 		var sprite = Sprite2D.new()
-		sprite.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/wall_000.png")
+		sprite.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/tile_0001.png")
 		sprite.modulate = Color(0.4, 0.4, 0.5)
 		wall.add_child(sprite)
 		

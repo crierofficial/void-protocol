@@ -50,12 +50,16 @@ func get_input_direction() -> Vector2:
 	
 	if Input.is_action_pressed("move_up"):
 		input.y -= 1
+		print("UP pressed")
 	if Input.is_action_pressed("move_down"):
 		input.y += 1
+		print("DOWN pressed")
 	if Input.is_action_pressed("move_left"):
 		input.x -= 1
+		print("LEFT pressed")
 	if Input.is_action_pressed("move_right"):
 		input.x += 1
+		print("RIGHT pressed")
 	
 	if input != Vector2.ZERO:
 		return input.normalized()
