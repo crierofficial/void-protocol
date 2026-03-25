@@ -1,7 +1,6 @@
 extends Node2D
 
 @onready var player_scene = preload("res://scenes/player.tscn")
-@onready var projectile_scene = preload("res://scenes/projectile.tscn")
 
 var player: CharacterBody2D
 var rooms: Array = []
@@ -9,10 +8,19 @@ var rooms: Array = []
 const GRID_OFFSET = Vector2(200, 100)
 const ROOM_SPACING = 320
 
+var ui_label: Label
+
 func _ready() -> void:
+	create_ui()
 	create_station_map()
 	spawn_player(Vector2(500, 400))
-	ZoneManager.start_match()
+
+func create_ui() -> void:
+	ui_label = Label.new()
+	ui_label.position = Vector2(20, 20)
+	ui_label.text = "VOID PROTOCOL\nWASD to move\nClick to attack"
+	ui_label.modulate = Color(0, 1, 0.8)
+	add_child(ui_label)
 
 func create_station_map() -> void:
 	var room_positions = {
@@ -36,11 +44,6 @@ func create_room(room_name: String, grid_pos: Vector2) -> Node:
 	room.position = GRID_OFFSET + grid_pos * ROOM_SPACING
 	add_child(room)
 	
-	var floor = Sprite2D.new()
-	floor.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/floor_001.png")
-	floor.modulate = get_room_color(room_name)
-	room.add_child(floor)
-	
 	for x in range(4):
 		for y in range(4):
 			var tile = Sprite2D.new()
@@ -49,7 +52,7 @@ func create_room(room_name: String, grid_pos: Vector2) -> Node:
 			tile.modulate = get_room_color(room_name)
 			room.add_child(tile)
 	
-	create_walls(room, Vector2(256, 256))
+	create_walls(room)
 	
 	var label = Label.new()
 	label.text = room_name.to_upper()
@@ -58,22 +61,12 @@ func create_room(room_name: String, grid_pos: Vector2) -> Node:
 	
 	return room
 
-func create_walls(room: Node, size: Vector2) -> void:
+func create_walls(room: Node) -> void:
 	var wall_positions = [
-		Vector2(0, -32),
-		Vector2(128, -32),
-		Vector2(256, -32),
-		Vector2(384, -32),
-		Vector2(0, 256),
-		Vector2(128, 256),
-		Vector2(256, 256),
-		Vector2(384, 256),
-		Vector2(-32, 0),
-		Vector2(-32, 128),
-		Vector2(-32, 256),
-		Vector2(256, 0),
-		Vector2(256, 128),
-		Vector2(256, 256)
+		Vector2(0, -32), Vector2(128, -32), Vector2(256, -32), Vector2(384, -32),
+		Vector2(0, 256), Vector2(128, 256), Vector2(256, 256), Vector2(384, 256),
+		Vector2(-32, 0), Vector2(-32, 128), Vector2(-32, 256),
+		Vector2(256, 0), Vector2(256, 128), Vector2(256, 256)
 	]
 	
 	for wall_pos in wall_positions:
@@ -118,13 +111,5 @@ func spawn_player(spawn_pos: Vector2) -> void:
 	print("Player spawned!")
 
 func _process(delta: float) -> void:
-	queue_redraw()
-	
 	if Input.is_action_just_pressed("map_toggle"):
 		print("Map toggle pressed")
-
-func _draw() -> void:
-	draw_string(ThemeDB.fallback_font, Vector2(20, 30), "VOID PROTOCOL", HORIZONTAL_ALIGN_LEFT, -1, 24, Color(0, 1, 0.8))
-	draw_string(ThemeDB.fallback_font, Vector2(20, 60), "Use WASD to move", HORIZONTAL_ALIGN_LEFT, -1, 16, Color(1, 1, 1))
-	draw_string(ThemeDB.fallback_font, Vector2(20, 80), "Click to attack", HORIZONTAL_ALIGN_LEFT, -1, 16, Color(1, 1, 1))
-	draw_string(ThemeDB.fallback_font, Vector2(20, 100), "TAB for map", HORIZONTAL_ALIGN_LEFT, -1, 16, Color(1, 1, 1))

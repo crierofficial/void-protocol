@@ -1,7 +1,7 @@
 extends CharacterBody2D
 
 const TILE_SIZE: float = 64.0
-const MOVE_SPEED: float = 256.0
+var move_speed: float = 256.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
@@ -31,16 +31,16 @@ func setup_class() -> void:
 			max_hp = 150
 			current_hp = 150
 		PlayerClass.GHOST:
-			MOVE_SPEED = MOVE_SPEED * 1.1
+			move_speed = move_speed * 1.1
 
 func _physics_process(delta: float) -> void:
 	var input_dir := get_input_direction()
 	
 	if input_dir != Vector2.ZERO:
-		velocity = input_dir * MOVE_SPEED
+		velocity = input_dir * move_speed
 		update_facing(input_dir)
 	else:
-		velocity = velocity.move_toward(Vector2.ZERO, MOVE_SPEED * delta)
+		velocity = velocity.move_toward(Vector2.ZERO, move_speed * delta)
 	
 	move_and_slide()
 	handle_attack()
@@ -62,10 +62,8 @@ func get_input_direction() -> Vector2:
 	return Vector2.ZERO
 
 func handle_attack() -> void:
-	if Input.is_action_pressed("attack") and current_weapon:
-		var mouse_pos = get_global_mouse_position()
-		var direction = (mouse_pos - position).normalized()
-		current_weapon.fire(position, direction)
+	if Input.is_action_pressed("attack"):
+		print("Attack!")
 
 func update_facing(direction: Vector2) -> void:
 	if direction.x > 0:
