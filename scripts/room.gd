@@ -60,7 +60,7 @@ func create_wall(pos: Vector2) -> StaticBody2D:
 	
 	var shape = CollisionShape2D.new()
 	var rect = RectangleShape2D.new()
-	rect.size = Vector2(tile_size, tile_size / 2)
+	rect.size = Vector2(tile_size, tile_size / 2.0)
 	shape.shape = rect
 	body.add_child(shape)
 	
@@ -88,4 +88,4 @@ func collapse() -> void:
 	queue_free()
 
 func get_center() -> Vector2:
-	return Vector2(grid_width * tile_size / 2, grid_height * tile_size / 2)
+	return Vector2(grid_width * tile_size / 2.0, grid_height * tile_size / 2.0)
