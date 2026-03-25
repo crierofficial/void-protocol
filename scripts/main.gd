@@ -1,116 +1,96 @@
 extends Node2D
 
-@onready var player_scene = preload("res://scenes/player.tscn")
+const TILE_WIDTH = 64
+const TILE_HEIGHT = 32
+const GRID_OFFSET_X = 340
+const GRID_OFFSET_Y = 80
 
+var player_scene = preload("res://scenes/player.tscn")
 var player: CharacterBody2D
-var rooms: Array = []
 
-const GRID_OFFSET = Vector2(200, 100)
-const ROOM_SPACING = 320
+var zones = [
+	{"id": "bridge", "c": 6, "r": 0, "w": 4, "h": 4, "fl": Color(0.043, 0.106, 0.212), "ac": Color(0.165, 0.447, 0.847), "name": "BRIDGE"},
+	{"id": "cargo", "c": 0, "r": 6, "w": 4, "h": 4, "fl": Color(0.059, 0.094, 0.047), "ac": Color(0.176, 0.4, 0.133), "name": "CARGO BAY"},
+	{"id": "reactor", "c": 6, "r": 6, "w": 4, "h": 4, "fl": Color(0.149, 0.071, 0.0), "ac": Color(0.878, 0.471, 0.0), "name": "REACTOR CORE"},
+	{"id": "medbay", "c": 12, "r": 6, "w": 4, "h": 4, "fl": Color(0.031, 0.11, 0.071), "ac": Color(0.0, 0.69, 0.314), "name": "MED BAY"},
+	{"id": "engine", "c": 0, "r": 12, "w": 4, "h": 4, "fl": Color(0.094, 0.031, 0.031), "ac": Color(0.769, 0.141, 0.0), "name": "ENGINE ROOM"},
+	{"id": "cryo", "c": 6, "r": 12, "w": 4, "h": 4, "fl": Color(0.024, 0.047, 0.094), "ac": Color(0.0, 0.737, 0.831), "name": "CRYO PODS", "spawn": true},
+	{"id": "outer", "c": 4, "r": 16, "w": 6, "h": 2, "fl": Color(0.09, 0.031, 0.031), "ac": Color(0.867, 0.125, 0.125), "name": "OUTER WALKWAYS", "danger": true},
+]
 
-var ui_label: Label
+var corridors = [
+	{"c": 7, "r": 4, "w": 2, "h": 2},
+	{"c": 4, "r": 7, "w": 2, "h": 2},
+	{"c": 10, "r": 7, "w": 2, "h": 2},
+	{"c": 1, "r": 10, "w": 2, "h": 2},
+	{"c": 7, "r": 10, "w": 2, "h": 2},
+	{"c": 7, "r": 14, "w": 2, "h": 2},
+]
 
-func _ready() -> void:
-	create_ui()
-	create_station_map()
-	spawn_player(Vector2(500, 400))
+func _ready():
+	draw_map()
+	spawn_player()
 
-func create_ui() -> void:
-	ui_label = Label.new()
-	ui_label.position = Vector2(20, 20)
-	ui_label.text = "VOID PROTOCOL\nWASD to move\nClick to attack"
-	ui_label.modulate = Color(0, 1, 0.8)
-	add_child(ui_label)
+func iso_to_screen(c, r):
+	return Vector2(
+		(c - r) * TILE_WIDTH / 2 + GRID_OFFSET_X,
+		(c + r) * TILE_HEIGHT / 2 + GRID_OFFSET_Y
+	)
 
-func create_station_map() -> void:
-	var room_positions = {
-		"bridge": Vector2(1, 0),
-		"reactor": Vector2(1, 1),
-		"cargo": Vector2(0, 1),
-		"medbay": Vector2(2, 1),
-		"engine": Vector2(0, 2),
-		"cryo": Vector2(2, 2),
-		"outer": Vector2(0, 3)
-	}
+func draw_map():
+	for zone in zones:
+		draw_zone(zone)
+	for corr in corridors:
+		draw_corridor(corr)
 	
-	for room_name in room_positions:
-		var pos = room_positions[room_name]
-		var room = create_room(room_name, pos)
-		rooms.append(room)
+	draw_string(ThemeDB.fallback_font, Vector2(20, 30), "ARCTURUS STATION", HORIZONTAL_ALIGN_LEFT, -1, 20, Color(0, 0.83, 1))
+	draw_string(ThemeDB.fallback_font, Vector2(20, 55), "VOID PROTOCOL - 7 ZONES", HORIZONTAL_ALIGN_LEFT, -1, 14, Color(0.5, 0.5, 0.5))
 
-func create_room(room_name: String, grid_pos: Vector2) -> Node:
-	var room = Node2D.new()
-	room.name = room_name
-	room.position = GRID_OFFSET + grid_pos * ROOM_SPACING
-	add_child(room)
+func draw_zone(z):
+	var c = z.c
+	var r = z.r
+	var w = z.w
+	var h = z.h
+	var fl = z.fl
+	var ac = z.ac
 	
-	for x in range(4):
-		for y in range(4):
-			var tile = Sprite2D.new()
-			tile.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/tile_0000.png")
-			tile.position = Vector2(x * 64, y * 64)
-			tile.modulate = get_room_color(room_name)
-			room.add_child(tile)
+	var n = iso_to_screen(c, r)
+	var e = iso_to_screen(c + w, r)
+	var s = iso_to_screen(c + w, r + h)
+	var wv = iso_to_screen(c, r + h)
 	
-	create_walls(room)
+	draw_polygon([n, e, s, wv], [fl])
 	
-	var label = Label.new()
-	label.text = room_name.to_upper()
-	label.position = Vector2(80, -30)
-	room.add_child(label)
+	if z.has("danger"):
+		var pulse = (sin(Time.get_ticks_msec() * 0.003) + 1) / 2
+		draw_polygon([n, e, s, wv], [Color(0.867, 0.125, 0.125, pulse * 0.3)])
 	
-	return room
+	draw_line(n, e, ac, 1.0)
+	draw_line(e, s, ac.darkened(0.5), 1.0)
+	draw_line(s, wv, ac.darkened(0.6), 1.0)
+	draw_line(wv, n, ac.darkened(0.6), 1.0)
+	
+	draw_string(ThemeDB.fallback_font, Vector2((n.x + e.x + s.x + wv.x) / 4 - 40, n.y), z.name, HORIZONTAL_ALIGN_LEFT, -1, 10, ac)
 
-func create_walls(room: Node) -> void:
-	var wall_positions = [
-		Vector2(0, -32), Vector2(128, -32), Vector2(256, -32), Vector2(384, -32),
-		Vector2(0, 256), Vector2(128, 256), Vector2(256, 256), Vector2(384, 256),
-		Vector2(-32, 0), Vector2(-32, 128), Vector2(-32, 256),
-		Vector2(256, 0), Vector2(256, 128), Vector2(256, 256)
-	]
+func draw_corridor(c):
+	var n = iso_to_screen(c.c, c.r)
+	var e = iso_to_screen(c.c + c.w, c.r)
+	var s = iso_to_screen(c.c + c.w, c.r + c.h)
+	var wv = iso_to_screen(c.c, c.r + c.h)
 	
-	for wall_pos in wall_positions:
-		var wall = StaticBody2D.new()
-		wall.position = wall_pos
-		wall.collision_layer = 4
-		
-		var sprite = Sprite2D.new()
-		sprite.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/tile_0001.png")
-		sprite.modulate = Color(0.4, 0.4, 0.5)
-		wall.add_child(sprite)
-		
-		var shape = CollisionShape2D.new()
-		var rect = RectangleShape2D.new()
-		rect.size = Vector2(64, 32)
-		shape.shape = rect
-		wall.add_child(shape)
-		
-		room.add_child(wall)
+	var col = Color(0.055, 0.055, 0.086)
+	draw_polygon([n, e, s, wv], [col])
+	
+	draw_line(n, e, Color(0, 0.83, 0.5, 0.2), 0.5)
+	draw_line(e, s, Color(0, 0.83, 0.5, 0.15), 0.5)
 
-func get_room_color(room_name: String) -> Color:
-	match room_name:
-		"bridge": return Color(0.3, 0.3, 0.5)
-		"reactor": return Color(0.5, 0.2, 0.2)
-		"cargo": return Color(0.2, 0.3, 0.4)
-		"medbay": return Color(0.3, 0.4, 0.3)
-		"engine": return Color(0.2, 0.2, 0.3)
-		"cryo": return Color(0.3, 0.3, 0.4)
-		"outer": return Color(0.2, 0.1, 0.1)
-	return Color(0.3, 0.3, 0.35)
-
-func spawn_player(spawn_pos: Vector2) -> void:
+func spawn_player():
 	player = player_scene.instantiate()
-	player.position = spawn_pos
+	var spawn_zone = zones[6]
+	var center = iso_to_screen(spawn_zone.c + spawn_zone.w / 2.0, spawn_zone.r + spawn_zone.h / 2.0)
+	player.position = center
 	add_child(player)
 	
-	var camera := Camera2D.new()
-	camera.name = "Camera2D"
-	camera.position_smoothing_enabled = true
-	camera.position_smoothing_speed = 5.0
-	player.add_child(camera)
-	
-	print("Player spawned!")
-
-func _process(delta: float) -> void:
-	if Input.is_action_just_pressed("map_toggle"):
-		print("Map toggle pressed")
+	var cam = Camera2D.new()
+	cam.position_smoothing_enabled = true
+	player.add_child(cam)
