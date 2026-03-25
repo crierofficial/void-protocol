@@ -28,23 +28,27 @@ var corridors = [
 ]
 
 func _ready():
-	draw_map()
+	var ui = Label.new()
+	ui.name = "UI"
+	ui.position = Vector2(20, 20)
+	ui.text = "ARCTURUS STATION\nVOID PROTOCOL - 7 ZONES\nWASD to move"
+	ui.add_theme_font_size_override("font_size", 16)
+	ui.modulate = Color(0, 0.83, 1)
+	add_child(ui)
+	
 	spawn_player()
 
-func iso_to_screen(c, r):
-	return Vector2(
-		(c - r) * TILE_WIDTH / 2 + GRID_OFFSET_X,
-		(c + r) * TILE_HEIGHT / 2 + GRID_OFFSET_Y
-	)
-
-func draw_map():
+func _draw():
 	for zone in zones:
 		draw_zone(zone)
 	for corr in corridors:
 		draw_corridor(corr)
-	
-	draw_string(ThemeDB.fallback_font, Vector2(20, 30), "ARCTURUS STATION", HORIZONTAL_ALIGN_LEFT, -1, 20, Color(0, 0.83, 1))
-	draw_string(ThemeDB.fallback_font, Vector2(20, 55), "VOID PROTOCOL - 7 ZONES", HORIZONTAL_ALIGN_LEFT, -1, 14, Color(0.5, 0.5, 0.5))
+
+func iso_to_screen(c, r):
+	return Vector2(
+		(c - r) * TILE_WIDTH / 2.0 + GRID_OFFSET_X,
+		(c + r) * TILE_HEIGHT / 2.0 + GRID_OFFSET_Y
+	)
 
 func draw_zone(z):
 	var c = z.c
@@ -62,15 +66,13 @@ func draw_zone(z):
 	draw_polygon([n, e, s, wv], [fl])
 	
 	if z.has("danger"):
-		var pulse = (sin(Time.get_ticks_msec() * 0.003) + 1) / 2
+		var pulse = (sin(Time.get_ticks_msec() * 0.003) + 1.0) / 2.0
 		draw_polygon([n, e, s, wv], [Color(0.867, 0.125, 0.125, pulse * 0.3)])
 	
 	draw_line(n, e, ac, 1.0)
 	draw_line(e, s, ac.darkened(0.5), 1.0)
 	draw_line(s, wv, ac.darkened(0.6), 1.0)
 	draw_line(wv, n, ac.darkened(0.6), 1.0)
-	
-	draw_string(ThemeDB.fallback_font, Vector2((n.x + e.x + s.x + wv.x) / 4 - 40, n.y), z.name, HORIZONTAL_ALIGN_LEFT, -1, 10, ac)
 
 func draw_corridor(c):
 	var n = iso_to_screen(c.c, c.r)
@@ -94,3 +96,6 @@ func spawn_player():
 	var cam = Camera2D.new()
 	cam.position_smoothing_enabled = true
 	player.add_child(cam)
+
+func _process(delta):
+	queue_redraw()
