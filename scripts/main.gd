@@ -1,15 +1,112 @@
 extends Node2D
 
 @onready var player_scene = preload("res://scenes/player.tscn")
+@onready var projectile_scene = preload("res://scenes/projectile.tscn")
 
 var player: CharacterBody2D
+var rooms: Array = []
+
+const GRID_OFFSET = Vector2(200, 100)
+const ROOM_SPACING = 320
 
 func _ready() -> void:
-	spawn_player()
+	create_station_map()
+	spawn_player(Vector2(500, 400))
+	ZoneManager.start_match()
 
-func spawn_player() -> void:
+func create_station_map() -> void:
+	var room_positions = {
+		"bridge": Vector2(1, 0),
+		"reactor": Vector2(1, 1),
+		"cargo": Vector2(0, 1),
+		"medbay": Vector2(2, 1),
+		"engine": Vector2(0, 2),
+		"cryo": Vector2(2, 2),
+		"outer": Vector2(0, 3)
+	}
+	
+	for room_name in room_positions:
+		var pos = room_positions[room_name]
+		var room = create_room(room_name, pos)
+		rooms.append(room)
+
+func create_room(room_name: String, grid_pos: Vector2) -> Node:
+	var room = Node2D.new()
+	room.name = room_name
+	room.position = GRID_OFFSET + grid_pos * ROOM_SPACING
+	add_child(room)
+	
+	var floor = Sprite2D.new()
+	floor.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/floor_001.png")
+	floor.modulate = get_room_color(room_name)
+	room.add_child(floor)
+	
+	for x in range(4):
+		for y in range(4):
+			var tile = Sprite2D.new()
+			tile.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/floor_001.png")
+			tile.position = Vector2(x * 64, y * 64)
+			tile.modulate = get_room_color(room_name)
+			room.add_child(tile)
+	
+	create_walls(room, Vector2(256, 256))
+	
+	var label = Label.new()
+	label.text = room_name.to_upper()
+	label.position = Vector2(80, -30)
+	room.add_child(label)
+	
+	return room
+
+func create_walls(room: Node, size: Vector2) -> void:
+	var wall_positions = [
+		Vector2(0, -32),
+		Vector2(128, -32),
+		Vector2(256, -32),
+		Vector2(384, -32),
+		Vector2(0, 256),
+		Vector2(128, 256),
+		Vector2(256, 256),
+		Vector2(384, 256),
+		Vector2(-32, 0),
+		Vector2(-32, 128),
+		Vector2(-32, 256),
+		Vector2(256, 0),
+		Vector2(256, 128),
+		Vector2(256, 256)
+	]
+	
+	for wall_pos in wall_positions:
+		var wall = StaticBody2D.new()
+		wall.position = wall_pos
+		
+		var sprite = Sprite2D.new()
+		sprite.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/wall_000.png")
+		sprite.modulate = Color(0.4, 0.4, 0.5)
+		wall.add_child(sprite)
+		
+		var shape = CollisionShape2D.new()
+		var rect = RectangleShape2D.new()
+		rect.size = Vector2(64, 32)
+		shape.shape = rect
+		wall.add_child(shape)
+		
+		room.add_child(wall)
+
+func get_room_color(room_name: String) -> Color:
+	match room_name:
+		"bridge": return Color(0.3, 0.3, 0.5)
+		"reactor": return Color(0.5, 0.2, 0.2)
+		"cargo": return Color(0.2, 0.3, 0.4)
+		"medbay": return Color(0.3, 0.4, 0.3)
+		"engine": return Color(0.2, 0.2, 0.3)
+		"cryo": return Color(0.3, 0.3, 0.4)
+		"outer": return Color(0.2, 0.1, 0.1)
+	return Color(0.3, 0.3, 0.35)
+
+func spawn_player(spawn_pos: Vector2) -> void:
 	player = player_scene.instantiate()
-	player.position = Vector2(400, 300)
+	player.position = spawn_pos
 	add_child(player)
 	
 	var camera := Camera2D.new()
@@ -18,30 +115,16 @@ func spawn_player() -> void:
 	camera.position_smoothing_speed = 5.0
 	player.add_child(camera)
 	
-	print("Player spawned at position: ", player.position)
+	print("Player spawned!")
 
 func _process(delta: float) -> void:
 	queue_redraw()
+	
+	if Input.is_action_just_pressed("map_toggle"):
+		print("Map toggle pressed")
 
 func _draw() -> void:
-	draw_isometric_grid()
-
-func draw_isometric_grid() -> void:
-	var tile_size := 64
-	var grid_width := 10
-	var grid_height := 8
-	
-	for y in range(grid_height):
-		for x in range(grid_width):
-			var iso_pos := cart_to_iso(Vector2(x * tile_size, y * tile_size))
-			draw_rect(
-				Rect2(iso_pos.x, iso_pos.y, tile_size, tile_size),
-				Color(0.1, 0.1, 0.15),
-				true
-			)
-
-func cart_to_iso(cart: Vector2) -> Vector2:
-	return Vector2(
-		cart.x - cart.y,
-		(cart.x + cart.y) / 2.0
-	)
+	draw_string(ThemeDB.fallback_font, Vector2(20, 30), "VOID PROTOCOL", HORIZONTAL_ALIGN_LEFT, -1, 24, Color(0, 1, 0.8))
+	draw_string(ThemeDB.fallback_font, Vector2(20, 60), "Use WASD to move", HORIZONTAL_ALIGN_LEFT, -1, 16, Color(1, 1, 1))
+	draw_string(ThemeDB.fallback_font, Vector2(20, 80), "Click to attack", HORIZONTAL_ALIGN_LEFT, -1, 16, Color(1, 1, 1))
+	draw_string(ThemeDB.fallback_font, Vector2(20, 100), "TAB for map", HORIZONTAL_ALIGN_LEFT, -1, 16, Color(1, 1, 1))

@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://projectile_scene"]
+
+[ext_resource type="Script" path="res://scripts/projectile.gd" id="1_proj"]
+[ext_resource type="Texture2D" path="res://assets/kenney_space-shooter-redux/PNG/laserBlue01.png" id="2_laser"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_laser"]
+size = Vector2(12, 4)
+
+[node name="Projectile" type="Area2D"]
+script = ExtResource("1_proj")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_laser")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+scale = Vector2(0.5, 0.5)
+shape = SubResource("RectangleShape2D_laser")

@@ -11,17 +11,27 @@ var max_hp: int = 100
 var is_hacking: bool = false
 var is_cloaked: bool = false
 
+var current_weapon: Node = null
+var gadgets: Array = []
+var selected_gadget: int = 0
+
+var player_id: int = 0
+
 enum PlayerClass { ENGINEER, GHOST, TANK, OVERLOAD }
 var player_class: PlayerClass = PlayerClass.ENGINEER
 
 func _ready() -> void:
+	add_to_group("player")
 	setup_class()
+	equip_default_weapon()
 
 func setup_class() -> void:
 	match player_class:
 		PlayerClass.TANK:
 			max_hp = 150
 			current_hp = 150
+		PlayerClass.GHOST:
+			MOVE_SPEED = MOVE_SPEED * 1.1
 
 func _physics_process(delta: float) -> void:
 	var input_dir := get_input_direction()
@@ -33,6 +43,7 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(Vector2.ZERO, MOVE_SPEED * delta)
 	
 	move_and_slide()
+	handle_attack()
 
 func get_input_direction() -> Vector2:
 	var input := Vector2.ZERO
@@ -50,6 +61,12 @@ func get_input_direction() -> Vector2:
 		return input.normalized()
 	return Vector2.ZERO
 
+func handle_attack() -> void:
+	if Input.is_action_pressed("attack") and current_weapon:
+		var mouse_pos = get_global_mouse_position()
+		var direction = (mouse_pos - position).normalized()
+		current_weapon.fire(position, direction)
+
 func update_facing(direction: Vector2) -> void:
 	if direction.x > 0:
 		sprite.scale.x = 1
@@ -57,11 +74,20 @@ func update_facing(direction: Vector2) -> void:
 		sprite.scale.x = -1
 
 func take_damage(amount: int) -> void:
+	if player_class == PlayerClass.TANK:
+		amount = int(amount * 0.85)
+	
 	current_hp -= amount
+	print("Player HP: ", current_hp, "/", max_hp)
 	if current_hp <= 0:
 		die()
 
+func heal(amount: int) -> void:
+	current_hp = min(current_hp + amount, max_hp)
+	print("Healed! HP: ", current_hp, "/", max_hp)
+
 func die() -> void:
+	print("Player died!")
 	queue_free()
 
 func start_hacking() -> void:
@@ -69,3 +95,26 @@ func start_hacking() -> void:
 
 func stop_hacking() -> void:
 	is_hacking = false
+
+func equip_default_weapon() -> void:
+	current_weapon = Weapon.new()
+	current_weapon.weapon_type = Weapon.WeaponType.PLASMA_PISTOL
+	current_weapon.setup_weapon()
+	add_child(current_weapon)
+
+func pickup_weapon(weapon_id: String) -> void:
+	print("Picked up weapon: ", weapon_id)
+
+func pickup_gadget(gadget_id: String) -> void:
+	print("Picked up gadget: ", gadget_id)
+	if gadgets.size() < 4:
+		gadgets.append(gadget_id)
+
+func refill_ammo() -> void:
+	if current_weapon:
+		current_weapon.reload()
+	print("Ammo refilled")
+
+func use_gadget(index: int) -> void:
+	if index < gadgets.size():
+		print("Using gadget: ", gadgets[index])
