@@ -72,6 +72,7 @@ func create_walls(room: Node) -> void:
 	for wall_pos in wall_positions:
 		var wall = StaticBody2D.new()
 		wall.position = wall_pos
+		wall.collision_layer = 4
 		
 		var sprite = Sprite2D.new()
 		sprite.texture = load("res://assets/kenney_rpg-urban-pack/Tiles/tile_0001.png")
